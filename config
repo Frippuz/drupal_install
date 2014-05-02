@@ -1,0 +1,21 @@
+# User defined values for initsite
+#
+###############################################################################
+
+# (MANDATORY) Where to install the sites
+srv_path=
+
+# (MANDATORY) GIT account "git@github.com:account"
+gitAccount=
+
+# Apache control executive
+APACHE_PROG=apachectl
+
+# Browser executive
+BROWSER_PROG=firefox
+
+# Debug mode
+debug=0
+
+# Devserver IP 10.1.10.107
+devserver=

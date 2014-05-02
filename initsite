@@ -12,7 +12,8 @@
 # [srv_path]/www
 # [srv_path]/vhosts
 
-srv_path=
+# Get the user defined values
+source config
 
 # Calculated path
 PROJ_ROOT=
@@ -22,23 +23,8 @@ PROFILE_NAME=
 
 TEMP_WEB_FOLDER="temp_web"
 
-# browser program
-BROWSER_PROG=firefox
-
 # Install path for initsite
 script_home="$( cd "$(dirname "$0")" ; pwd -P )"
-
-# Apache control executive
-APACHE_PROG=apachectl
-
-# GIT account "git@github.com:account"
-gitAccount=
-
-# Debug mode
-debug=0
-
-# Devserver IP 10.1.10.107
-devserver=
 
 # Column number to place the status message
 RES_COL=80
