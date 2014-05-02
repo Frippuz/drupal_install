@@ -12,3 +12,10 @@ The script installs a new site under desired folder with the basic common folder
 - virtual host files are created for apache and nginx
 - database and database user are created
 
+Installation
+------------
+
+Copy alla files to a desired local i.e. /usr/local
+Create a symlink for the initsite script
+
+sudo ln -s [path to initsite] /usr/local/bin/initsite
