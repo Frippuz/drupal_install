@@ -135,20 +135,46 @@ start() {
 
   PROJ_ROOT=${PROJ_ROOT}
   PROFILE_NAME=${siteurl%.*}
-}
 
+  read -p "Shall this site be cloned from git, or fresh start [git/new]:" initType
+  if [[ "initType" == "git" ]]; then
+    echo -n "[step 1 : 4] Clone site from git"
 
-###############################################################################
-check_symlink(){  
-  # Check if the files folder exist, if not, create it
-  if [ ! -d "${PROJ_ROOT}/web/sites/$siteurl/files" ]; then
-    mkdir ${PROJ_ROOT}/web/sites/$siteurl/files
+    if [ ! -d "${PROJ_ROOT}" ]; then
+      echo -n "[step 1 : 3] Git clone"
+      git clone $gitAccount/site-$siteid.git ${PROJ_ROOT}
 
-    echo -n "To set the the correct rights I need your sudo "
-    sudo chmod 777 ${PROJ_ROOT}/web/sites/default/files
+      echo_ok
+      echo ""
+
+      echo -n "[step 2 : 3] Make site"
+      if [ -f "${PROJ_ROOT}/make" ]; then
+        echo "The site contains a make file, do you want to build the site now?"
+        yesno
+        if [ "$yesno_" ==  true ]; then
+          drush make ${PROJ_ROOT}/make ${PROJ_ROOT}/drupal
+        else
+          echo -n "Get database from $base"
+          drush sql-sync @$siteid-$base @$siteid-virtual
+          echo_ok
+          echo ""    
+        fi  
+      fi
+
+      echo -n "[step 3 : 3] Update hosts file"
+      update_hosts      
+    fi
+    echo_ok
+    echo ""
+  else
+    setup_site
+    make_site
+    after_make
+    setup_db
+    update_hosts
+    install_site
   fi
-  
- }
+}
  
 ###############################################################################  
 update_aliases(){  
@@ -235,16 +261,16 @@ function setup_site {
   find . -name '*.make'    | xargs perl -pi -e "s/\#profile_name#/$PROFILE_NAME/g"
   
   # Copy basic theme
-  cp -r $script_home/profile/theme ./themes/$PROFILE_NAME\_theme
-  cd ./themes/$PROFILE_NAME\_theme
+  #cp -r $script_home/profile/theme ./themes/$PROFILE_NAME\_theme
+  #cd ./themes/$PROFILE_NAME\_theme
 
-  mv theme.info $PROFILE_NAME\_theme.info
+  #mv theme.info $PROFILE_NAME\_theme.info
 
-  find . -name '*.info'       | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
-  find . -name '*.info'       | xargs perl -pi -e "s/\[site\]/$siteurl/g"
-  find . -name 'template.php' | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  #find . -name '*.info'       | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  #find . -name '*.info'       | xargs perl -pi -e "s/\[site\]/$siteurl/g"
+  #find . -name 'template.php' | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
 
-  touch js/$PROFILE_NAME\_theme_custom.js
+  #touch js/$PROFILE_NAME\_theme_custom.js
    
   echo_ok
   echo ""
@@ -253,7 +279,7 @@ function setup_site {
 
 function make_site {
     # Make main project in temporary folder
-    echo -e "\nMake installation profile"
+    echo "Make installation profile"
 
     cd "${PROJ_ROOT}"
     drush -y make --no-core --no-clean --contrib-destination=web/profiles/$PROFILE_NAME  web/profiles/$PROFILE_NAME/$PROFILE_NAME.make 
@@ -267,7 +293,12 @@ function make_site {
     #cd "${PROJ_ROOT}"
     #rm -rf web
     #mv "${TEMP_WEB_FOLDER}" web
-    
+
+    echo "Setup theme"
+    cp -r web/profiles/$PROFILE_NAME/themes/adaptivetheme/at_subtheme web/profiles/$PROFILE_NAME/themes/$PROFILE_NAME_theme
+    cd web/profiles/$PROFILE_NAME/themes/$PROFILE_NAME_theme
+    mv adaptivetheme_subtheme.info $PROFILE_NAME\_theme.info
+
     echo -e "$PROFILE_NAME build done!"
     echo_ok    
     echo ""
@@ -345,71 +376,51 @@ function setup_db {
 
 ###############################################################################
 function install_site {
-  
-  read -p "Shall this site be cloned from git, or fresh start [git/new]:" initType
-  if [[ "initType" == "git" ]]; then
-    echo -n "[step 1 : 4] Clone site from git"
+  echo -n "Do you want to install the site now? "
+  yesno
 
-    if [ ! -d "${PROJ_ROOT}" ]; then
-      echo -n "[step 1 : 3] Git clone"
-      git clone $gitAccount/site-$siteid.git ${PROJ_ROOT}
+  if [ $yesno_ = true ]; then
+    cd "${PROJ_ROOT}/web"
+    drush -vy si $PROFILE_NAME
 
+    # Clear all caches
+    drush cc all
 
-      echo_ok
-      echo ""
-
-      echo -n "[step 2 : 4] Make site"
-      if [ -f "${PROJ_ROOT}/make" ]; then
-        echo "The site contains a make file, do you want to build the site now?"
-        yesno
-        if [ "$yesno_" ==  true ]; then
-          drush make ${PROJ_ROOT}/make ${PROJ_ROOT}/drupal
-        else
-          echo -n "Get database from $base"
-          drush sql-sync @$siteid-$base @$siteid-virtual
-          echo_ok
-          echo ""    
-        fi  
-      fi
-
-      echo -n "[step 3 : 4] Check symlinks"
-      check_symlink
-
-      echo -n "[step 4 : 4] Update hosts file"
-      update_hosts      
-    fi
-    echo_ok
-    echo ""
-  else
-    setup_site
-    make_site
-    after_make
-    setup_db
-    check_symlink
-    update_hosts
+    echo -n "Drupal installation finished!"
   fi
+  
 }
 
 # Check input, if not help do the thing
 if [[ ! -z $1 && "$1" == "help" ]]; then
  help
 else
-  start_ok="1"
+  start_ok=true
+
+  clear
+
+  echo "################################################################################"
+  echo "#"
+  echo "# Drupal site installation script"
+  echo "# This script will install a new or existing website on your computer"
+  echo "#"
+  echo "################################################################################"
+  
+  echo ""
 
   if [ -z $srv_path ]; then
-    start_ok="0"
+    start_ok=false
     echo_fail
     echo "'srv_path' variable unset, you'll need to set it!"
   fi
 
   if [ -z $gitAccount ]; then
-    start_ok="0"
+    start_ok=false
     echo_fail
     echo "'gitAccount' variable unset, you'll need to set it get GIT to work!"
   fi  
 
-  if [ "$start_ok" -eq "1" ]; then
+  if [ $start_ok = true ]; then
     start
-    install_site
   fi
 fi

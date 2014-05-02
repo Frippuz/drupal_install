@@ -11,10 +11,10 @@ profiler_v2('[name]');
 function [name]_form_install_configure_form_alter(&$form, $form_state) {
 
   // Pre-populate some fields in configure site form.
-  $form['site_information']['site_name']['#default_value'] = 'Fondprodukter Intra';
-  $form['site_information']['site_mail']['#default_value'] = 'fredric@fondprodukter.se';
+  $form['site_information']['site_name']['#default_value'] = '[name]';
+  $form['site_information']['site_mail']['#default_value'] = '';
   $form['admin_account']['account']['name']['#default_value'] = 'admin';
-  $form['admin_account']['account']['mail']['#default_value'] = 'fredric@fondprodukter.se';
+  $form['admin_account']['account']['mail']['#default_value'] = '';
   $form['server_settings']['site_default_country']['#default_value'] = 'SE';
   $form['server_settings']['date_default_timezone']['#default_value'] = 'Europe/Stockholm';
 

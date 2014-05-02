@@ -5,6 +5,6 @@ wget -O - -q -t 1 http://[siteurl]?cron_key=
 echo "Cron successfully run!";
 
 
-# Access forst page to warm cache
+# Access first page to warm cache
 page="http://www.[siteurl]";
 wget -O - -q -t 1 $page
