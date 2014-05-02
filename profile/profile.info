@@ -1,0 +1,71 @@
+name = [name]
+description = Installation profile for [site]
+version = VERSION
+core = 7.x
+files[] = [name].profile
+
+; Core
+dependencies[] = comment
+dependencies[] = dblog
+dependencies[] = field_ui
+dependencies[] = filter
+dependencies[] = locale
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = path
+dependencies[] = search
+dependencies[] = taxonomy
+dependencies[] = block
+dependencies[] = contextual
+dependencies[] = contact
+
+; Contrib
+dependencies[] = admin_menu_toolbar
+dependencies[] = ctools
+dependencies[] = date
+dependencies[] = date_tools
+dependencies[] = date_popup
+dependencies[] = entity
+dependencies[] = features
+dependencies[] = file
+dependencies[] = image
+dependencies[] = libraries
+dependencies[] = list
+dependencies[] = module_filter
+dependencies[] = page_manager
+dependencies[] = panels
+dependencies[] = panels_everywhere
+dependencies[] = panels_mini
+dependencies[] = pathauto
+dependencies[] = semanticviews
+dependencies[] = strongarm
+dependencies[] = token
+dependencies[] = views
+dependencies[] = views_content
+dependencies[] = jquery_update
+
+; Development modules
+dependencies[] = devel
+dependencies[] = devel_generate
+dependencies[] = diff
+dependencies[] = field_ui
+dependencies[] = views_ui
+
+; Features
+
+; Custom modules
+
+; Variables
+variables[site_name] = [site]
+variables[site_mail] = fredric@fondprodukter.se
+variables[site_default_country] = SE
+variables[date_default_timezone] = Europe/Stockholm
+variables[panels_everywhere_site_template_enabled] = 1
+
+; Themes
+themes[] = seven
+themes[] = [name]_theme
+
+; Languages
+languages[] = sv
+default_language = sv

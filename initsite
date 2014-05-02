@@ -1,0 +1,415 @@
+#!/bin/bash
+
+################################################################################
+# Script to get a new or existing site started
+#
+# @author: Frippuz
+################################################################################
+
+# Base path to the local folder where website are installed
+# This script implies a folder structure build in this way
+# [srv_path]
+# [srv_path]/www
+# [srv_path]/vhosts
+
+srv_path=
+
+# Calculated path
+PROJ_ROOT=
+
+# Caclulated name
+PROFILE_NAME=
+
+TEMP_WEB_FOLDER="temp_web"
+
+# browser program
+BROWSER_PROG=firefox
+
+# Install path for initsite
+script_home="$( cd "$(dirname "$0")" ; pwd -P )"
+
+# Apache control executive
+APACHE_PROG=apachectl
+
+# GIT account "git@github.com:account"
+gitAccount=
+
+# Debug mode
+debug=0
+
+# Devserver IP 10.1.10.107
+devserver=
+
+# Column number to place the status message
+RES_COL=80
+# Command to move out to the configured column number
+MOVE_TO_COL="echo -en \\033[${RES_COL}G"
+# Command to set the color to SUCCESS (Green)
+SETCOLOR_SUCCESS="echo -en \\033[1;32m"
+# Command to set the color to FAILED (Red)
+SETCOLOR_FAILURE="echo -en \\033[1;31m"
+# Command to set the color back to normal
+SETCOLOR_NORMAL="echo -en \\033[0;39m"
+
+# Function to print the SUCCESS status
+echo_ok() {
+  $MOVE_TO_COL
+  echo -n "["
+  $SETCOLOR_SUCCESS
+  echo -n $"  OK  "
+  $SETCOLOR_NORMAL
+  echo -n "]"
+  echo -ne "\r"
+  return 0
+}
+ 
+# Function to print the FAILED status message
+echo_fail() {
+  $MOVE_TO_COL
+  echo -n "["
+  $SETCOLOR_FAILURE
+  echo -n $"FAILED"
+  $SETCOLOR_NORMAL
+  echo -n "]"
+  echo -ne "\r"
+  return 1
+}
+
+yesno(){
+  echo -n "[Yes/No]: "
+  read yno
+  case $yno in
+
+        [yY] | [yY][Ee][Ss] )
+                yesno_=true
+                ;;
+
+        [nN] | [n|N][O|o] )
+                yesno_=false
+                ;;
+        *) yesno
+            ;;
+  esac
+}
+
+###############################################################################
+help() {
+  read -d '' out << END
+This script sets up a new website on your computer.
+Usage:
+init-site [siteid] [base url]
+
+Example:
+init-site 001 mysite.se
+END
+  echo "$out"
+  exit
+}
+
+###############################################################################
+start() {
+  echo "Running initialzation for siteid $siteid"
+
+  # Get the previous values if any
+  #while read row; do
+  #  echo `echo $row | cut -d = -f 2` 
+  #done < ~/.site-install
+
+
+  # Get siteid and siteurl
+  # These parameters defaults to stdin
+  if [ ! -n "$1" ]; then
+    read -p "Enter site ID:" siteid
+  else
+    siteid=$1
+  fi
+  siteid='100'
+  if [ ! -n "$2" ]; then
+    read -p "Enter site url (no subdomian like www):" siteurl
+  else
+    siteurl=$2
+  fi
+  siteurl='mysite.se'
+  # Store the entererd values
+  echo -e "siteid=$siteid\nsiteurl=$siteurl\nbase=$base" >> ~/.site-install
+
+  PROJ_ROOT=${PROJ_ROOT}
+  PROFILE_NAME=${siteurl%.*}
+}
+
+
+###############################################################################
+check_symlink(){  
+  # Check if the files folder exist, if not, create it
+  if [ ! -d "${PROJ_ROOT}/web/sites/$siteurl/files" ]; then
+    mkdir ${PROJ_ROOT}/web/sites/$siteurl/files
+
+    echo -n "To set the the correct rights I need your sudo "
+    sudo chmod 777 ${PROJ_ROOT}/web/sites/default/files
+  fi
+  
+ }
+ 
+###############################################################################  
+update_aliases(){  
+  echo -n "[step 3 : 7] Update drush aliases file"
+  exist=`cat $srv_path/drush/aliases.drushrc.php | grep $siteid-`
+  if [ ! -n "$exist" ]; then
+    echo ""           >> $srv_path/drush/aliases.drushrc.php
+    echo "\$aliases['$siteid-virtual'] = array("  >> $srv_path/drush/aliases.drushrc.php
+    echo "  'uri' => 'loc.$siteurl',"     >> $srv_path/drush/aliases.drushrc.php
+    echo "  'root' => '/srv/www/$siteid/web'," >> $srv_path/drush/aliases.drushrc.php
+    echo ") + \$virtual_base;"      >> $srv_path/drush/aliases.drushrc.php
+  
+    echo ""           >> $srv_path/drush/aliases.drushrc.php
+    echo "\$aliases['$siteid-$base'] = array("  >> $srv_path/drush/aliases.drushrc.php
+    echo "    'uri' => 'dev.$siteurl',"     >> $srv_path/drush/aliases.drushrc.php
+    echo "    'root' => '/srv/www/$siteid/web'," >> $srv_path/drush/aliases.drushrc.php
+    echo ") + \$${base}_base;"      >> $srv_path/drush/aliases.drushrc.php
+  fi
+  echo_ok
+  echo ""
+ }
+  
+ ###############################################################################
+ function update_hosts { 
+  echo -e "[step 6 : 7] Update local hosts file"
+  exist=`cat /etc/hosts | grep $siteurl`
+  if [ ! -n "$exist" ]; then  
+    echo "$devserver dev.$siteurl" | sudo tee -a /etc/hosts
+    echo "127.0.0.1 loc.$siteurl" | sudo tee -a /etc/hosts
+  fi
+  echo_ok
+  echo ""
+
+  echo "[step 7 : 7] symlink the vhost file and restart Apache"
+  if [ ! -h "$srv_path/vhosts/$siteurl.80" ]; then
+    ln -s /srv/www/$siteid/vhosts/$siteurl.80 $srv_path/vhosts/$siteurl.80
+  fi
+
+  sudo $APACHE_PROG restart
+  echo_ok
+  echo ""
+}
+ 
+#  echo "Everything done, opening the new site in your webbrowser"
+#  $BROWSER_PROG http://loc.$siteurl &
+
+function setup_site {
+  echo "Setting up basic site structure"
+
+  mkdir "${PROJ_ROOT}"
+  cd "${PROJ_ROOT}"
+
+  mkdir tmp
+  mkdir log
+  mkdir vhosts
+  mkdir vhosts/nginx    
+  mkdir web
+  sudo chmod -R 777 *
+
+  cp $script_home/site_cron ${PROJ_ROOT}/
+
+  echo Set up a the profile
+  cd web
+  mkdir profiles
+  mkdir profiles/$PROFILE_NAME
+  cd profiles/$PROFILE_NAME
+
+  mkdir libraries
+  mkdir modules
+  mkdir modules/contrib
+  mkdir modules/custom
+  mkdir themes
+  
+  cp $script_home/profile/profile.make    ./$PROFILE_NAME.make    
+  cp $script_home/profile/profile.info    ./$PROFILE_NAME.info
+  cp $script_home/profile/profile.install ./$PROFILE_NAME.install
+  cp $script_home/profile/profile.profile ./$PROFILE_NAME.profile
+  
+  # Add profile specific strings
+  find . -name '*.info'    | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  find . -name '*.info'    | xargs perl -pi -e "s/\[site\]/$siteurl/g"
+  find . -name '*.install' | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  find . -name '*.profile' | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  find . -name '*.make'    | xargs perl -pi -e "s/\#profile_name#/$PROFILE_NAME/g"
+  
+  # Copy basic theme
+  cp -r $script_home/profile/theme ./themes/$PROFILE_NAME\_theme
+  cd ./themes/$PROFILE_NAME\_theme
+
+  mv theme.info $PROFILE_NAME\_theme.info
+
+  find . -name '*.info'       | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+  find . -name '*.info'       | xargs perl -pi -e "s/\[site\]/$siteurl/g"
+  find . -name 'template.php' | xargs perl -pi -e "s/\[name\]/$PROFILE_NAME/g"
+
+  touch js/$PROFILE_NAME\_theme_custom.js
+   
+  echo_ok
+  echo ""
+
+}
+
+function make_site {
+    # Make main project in temporary folder
+    echo -e "\nMake installation profile"
+
+    cd "${PROJ_ROOT}"
+    drush -y make --no-core --no-clean --contrib-destination=web/profiles/$PROFILE_NAME  web/profiles/$PROFILE_NAME/$PROFILE_NAME.make 
+
+    # Move profiles and settings.php to temp folder. 
+    #cd "${PROJ_ROOT}/web"
+    #mv -f profiles "${PROJ_ROOT}/${TEMP_WEB_FOLDER}/"
+    #mv -f sites/default "${PROJ_ROOT}/${TEMP_WEB_FOLDER}/sites"
+
+    # Remove old web folder and rename temp folder.
+    #cd "${PROJ_ROOT}"
+    #rm -rf web
+    #mv "${TEMP_WEB_FOLDER}" web
+    
+    echo -e "$PROFILE_NAME build done!"
+    echo_ok    
+    echo ""
+}
+
+function after_make {
+
+  echo -e "Downloading Drupal"
+  drush dl --destination=${PROJ_ROOT}
+  mv ${PROJ_ROOT}/drupal* ${PROJ_ROOT}/drupal
+
+  cd ${PROJ_ROOT}/web
+  ln -s ${PROJ_ROOT}/drupal/authorize.php
+  ln -s ${PROJ_ROOT}/drupal/cron.php
+  ln -s ${PROJ_ROOT}/drupal/includes
+  ln -s ${PROJ_ROOT}/drupal/index.php
+  ln -s ${PROJ_ROOT}/drupal/install.php
+  ln -s ${PROJ_ROOT}/drupal/misc
+  ln -s ${PROJ_ROOT}/drupal/modules
+  ln -s ${PROJ_ROOT}/drupal/scripts
+  ln -s ${PROJ_ROOT}/drupal/themes
+  ln -s ${PROJ_ROOT}/drupal/update.php
+  ln -s ${PROJ_ROOT}/drupal/xmlrpc.php
+
+  cp -rf ${PROJ_ROOT}/drupal/sites ./
+
+  echo -e "Make sure we have a files folder."
+  # Create files folder
+  cd "${PROJ_ROOT}/web/sites/default"
+  if [ ! -d "files" ]; then
+      mkdir files
+  fi
+  chmod -R 777 files
+
+  echo -e "Set up settings.php"
+  cp ${PROJ_ROOT}/web/sites/default/default.settings.php ${PROJ_ROOT}/web/sites/default/settings.php 
+  echo -n "To set the the correct rights I need your sudo "
+  sudo chmod 777 ${PROJ_ROOT}/web/sites/default/settings.php 
+  echo_ok
+  echo ""
+
+  echo -e "Make sure the web folder has the neccesary rights..."
+  cd "${PROJ_ROOT}"
+  chmod +w web -R
+  echo_ok
+  echo ""
+
+  echo -e "Set up the vhostfiles"
+  cd vhosts
+  cp -r $script_home/vhosts/profile.se.80 ./$siteurl.80
+  find . -name '*.80'       | xargs perl -pi -e "s/\[siteurl\]/$siteurl/g"
+  find . -name '*.80'       | xargs perl -pi -e "s/\[siteid\]/$siteid/g"
+
+  cd nginx
+  cp -r $script_home/vhosts/nginx/profile.conf ./$siteurl.conf
+  find . -name '*.80'       | xargs perl -pi -e "s/\[siteurl\]/$siteurl/g"
+  find . -name '*.80'       | xargs perl -pi -e "s/\[siteid\]/$siteid/g"
+
+  echo_ok    
+  echo ""
+}
+
+function setup_db {
+  echo "Set up database"
+  read -p "Password for DB user:" dbpwd
+  echo -n "Enter the MySQL root password"
+
+  echo "CREATE DATABASE ${siteid}_db1" | mysql -u root
+  echo "GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}'" | mysql -u root
+
+  #echo "CREATE DATABASE ${siteid}_db1; GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}';" | mysql -uroot -p
+  echo_ok
+  echo ""
+}
+
+###############################################################################
+function install_site {
+  
+  read -p "Shall this site be cloned from git, or fresh start [git/new]:" initType
+  if [[ "initType" == "git" ]]; then
+    echo -n "[step 1 : 4] Clone site from git"
+
+    if [ ! -d "${PROJ_ROOT}" ]; then
+      echo -n "[step 1 : 3] Git clone"
+      git clone $gitAccount/site-$siteid.git ${PROJ_ROOT}
+
+
+      echo_ok
+      echo ""
+
+      echo -n "[step 2 : 4] Make site"
+      if [ -f "${PROJ_ROOT}/make" ]; then
+        echo "The site contains a make file, do you want to build the site now?"
+        yesno
+        if [ "$yesno_" ==  true ]; then
+          drush make ${PROJ_ROOT}/make ${PROJ_ROOT}/drupal
+        else
+          echo -n "Get database from $base"
+          drush sql-sync @$siteid-$base @$siteid-virtual
+          echo_ok
+          echo ""    
+        fi  
+      fi
+
+      echo -n "[step 3 : 4] Check symlinks"
+      check_symlink
+
+      echo -n "[step 4 : 4] Update hosts file"
+      update_hosts      
+    fi
+    echo_ok
+    echo ""
+  else
+    setup_site
+    make_site
+    after_make
+    setup_db
+    check_symlink
+    update_hosts
+  fi
+}
+
+# Check input, if not help do the thing
+if [[ ! -z $1 && "$1" == "help" ]]; then
+ help
+else
+  start_ok="1"
+
+  if [ -z $srv_path ]; then
+    start_ok="0"
+    echo_fail
+    echo "'srv_path' variable unset, you'll need to set it!"
+  fi
+
+  if [ -z $gitAccount ]; then
+    start_ok="0"
+    echo_fail
+    echo "'gitAccount' variable unset, you'll need to set it get GIT to work!"
+  fi  
+
+  if [ "$start_ok" -eq "1" ]; then
+    start
+    install_site
+  fi
+fi

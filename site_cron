@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# this is the standard Drupal cron invocation that runs from cron
+#     this will flush the Page Cache when Minimum Cache Lifetime set to <none>
+#
+wget -O - -q -t 1 http://tools.fondprodukter.se/cron.php?cron_key=Fr6R21i13w8c62fn0TZBvj3lJIpps3I4g4-efKRz_-s
+echo "Cron successfully run!";
+
+#
+# use the sitemap and reload the Page Cache by accessing each page once
+#pages=`wget --quiet http://tools.fondprodukter.se/sitemap.xml?page=1 -O -`
+#counter=0
+#while read -r page; do
+#  page=`echo $page | egrep -o 'http://tools.fondprodukter.se[^<]+'`
+#  echo $page
+#  wget --quiet $page -O -
+#done <<< "$pages"
+
+page="http://tools.fondprodukter.se";
+wget -O - -q -t 1 $page
+
+echo "Cache warm and ready for first accesss.."
