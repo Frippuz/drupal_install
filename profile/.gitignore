@@ -1,0 +1,10 @@
+# Ignore some standard files
+.DS_Store
+
+# Ignore paths that contain generated content.
+cache/
+files/
+sites/*/files
+log/error.log
+log/access.log
+tmp/*
