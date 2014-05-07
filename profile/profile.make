@@ -116,9 +116,17 @@ libraries[ckeditor][download][type] = "get"
 libraries[ckeditor][download][url] = "http://download.cksource.com/CKEditor/CKEditor/CKEditor%204.4.0/ckeditor_4.4.0_standard.zip"
 libraries[ckeditor][directory_name] = "ckeditor"
 libraries[ckeditor][type] = "library"
+
 ; Please fill the following out. Type may be one of get, git, bzr or svn,
 ; and url is the url of the download.
 libraries[colorbox][download][type] = "get"
 libraries[colorbox][download][url] = "https://github.com/jackmoore/colorbox/archive/master.zip"
 libraries[colorbox][directory_name] = "colorbox"
+libraries[colorbox][type] = "library"
+
+; Please fill the following out. Type may be one of get, git, bzr or svn,
+; and url is the url of the download.
+libraries[colorbox][download][type] = "get"
+libraries[colorbox][download][url] = "http://malsup.github.com/jquery.cycle.all.js"
+libraries[colorbox][directory_name] = "jquery.cycle"
 libraries[colorbox][type] = "library"
