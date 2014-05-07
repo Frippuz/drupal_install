@@ -1,2 +1,3 @@
 # Ignore paths that contain generated content.
 .DS_Store
+config
