@@ -121,7 +121,7 @@ start() {
   # Store the entererd values
   echo -e "siteid=$siteid\nsiteurl=$siteurl\nbase=$base" >> ~/.site-install
 
-  PROJ_ROOT=$srv_path/www/${siteurl}
+  PROJ_ROOT=$srv_path/www/${siteid}
   PROFILE_NAME=${siteurl%.*}
 
   read -p "Shall this site be cloned from git, or fresh start [git/new]:" initType
@@ -155,12 +155,12 @@ start() {
     echo_ok
     echo ""
   else
-    setup_site
-    make_site
-    after_make
+    #setup_site
+    #make_site
+    #after_make
     setup_db
-    update_hosts
-    install_site
+    #update_hosts
+    #install_site
   fi
 }
  
@@ -342,8 +342,8 @@ function after_make {
 
   cd nginx
   cp -r $script_home/vhosts/nginx/profile.conf ./$siteurl.conf
-  find . -name '*.80'       | xargs perl -pi -e "s/\[siteurl\]/$siteurl/g"
-  find . -name '*.80'       | xargs perl -pi -e "s/\[siteid\]/$siteid/g"
+  find . -name '*.conf'       | xargs perl -pi -e "s/\[siteurl\]/$siteurl/g"
+  find . -name '*.conf'       | xargs perl -pi -e "s/\[siteid\]/$siteid/g"
 
   echo_ok    
   echo ""
@@ -354,9 +354,34 @@ function setup_db {
   read -p "Password for DB user:" dbpwd
   echo -n "Enter the MySQL root password"
 
-  echo "CREATE DATABASE ${siteid}_db1" | mysql -u root
-  echo "GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}'" | mysql -u root
+  #echo "CREATE DATABASE ${siteid}_db1" | mysql -u root
+  #echo "GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}'" | mysql -u root
 
+  echo_ok
+  echo ""
+
+  echo -n "Update database settings"
+  cd "${PROJ_ROOT}"/web/sites/default
+
+  read -d '' db_settings << END
+\$databases = array (
+  'default' => 
+    array (
+    'default' => 
+      array (
+        'database' => '${siteid}_db1',
+        'username' => '${siteid}_u1',
+        'password' => '$dbpwd',
+        'host' => 'localhost',
+        'port' => '',
+        'driver' => 'mysql',
+        'prefix' => '',
+      ),
+    ),
+  );
+END
+
+  find . -name 'settings.php'       | xargs perl -pi -e "s/\$databases = array\(\);/$db_settings/g"
   echo_ok
   echo ""
 }
