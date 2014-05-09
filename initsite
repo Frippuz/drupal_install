@@ -155,12 +155,12 @@ start() {
     echo_ok
     echo ""
   else
-    #setup_site
-    #make_site
-    #after_make
+    setup_site
+    make_site
+    after_make
     setup_db
-    #update_hosts
-    #install_site
+    update_hosts
+    install_site
   fi
 }
  
@@ -354,8 +354,8 @@ function setup_db {
   read -p "Password for DB user:" dbpwd
   echo -n "Enter the MySQL root password"
 
-  #echo "CREATE DATABASE ${siteid}_db1" | mysql -u root
-  #echo "GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}'" | mysql -u root
+  echo "CREATE DATABASE ${siteid}_db1" | mysql -u root
+  echo "GRANT ALL PRIVILEGES ON ${siteid}_db1.* TO ${siteid}_u1@localhost IDENTIFIED BY '${dbpwd}'" | mysql -u root
 
   echo_ok
   echo ""
